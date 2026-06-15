@@ -2954,16 +2954,9 @@ function focusPortal(portal){
 
 function openGame(game){
   if(!game) return;
-  const dock = document.getElementById('gameDock');
-  if(activeGame?.id === game.id && dock.classList.contains('show')) return;
-  activeGame = game;
-  if(soundEnabled){
-    fadeHubBgm(0, 850);
-    startGameMusic(game);
-  }
-  document.getElementById('gameTitle').textContent = game.name;
-  document.getElementById('gameFrame').src = game.path;
-  dock.classList.add('show');
+  const gameUrl = new URL(game.path, location.href);
+  gameUrl.searchParams.set('from', 'ggame-hub');
+  window.location.assign(gameUrl.href);
 }
 function closeGame(){
   document.getElementById('gameDock').classList.remove('show');
