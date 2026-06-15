@@ -134,6 +134,22 @@ button:disabled{opacity:.42;pointer-events:none;filter:saturate(.55)}
   #boardWrap{padding:9px;min-width:260px}
 }
 </style>
+<style id="touchGuardStyle">
+  html, body, body *{
+    -webkit-user-select:none;
+    user-select:none;
+    -webkit-touch-callout:none;
+  }
+  img, svg, canvas{
+    -webkit-user-drag:none;
+    user-drag:none;
+  }
+  input, textarea, [contenteditable="true"]{
+    -webkit-user-select:text;
+    user-select:text;
+    -webkit-touch-callout:default;
+  }
+</style>
 </head>
 <body>
 <canvas id="mist"></canvas>
@@ -1001,6 +1017,20 @@ window.addEventListener("resize",()=>{resizeMist();resizeBoard()});
 resizeMist();
 startLevel();
 requestAnimationFrame(loop);
+</script>
+<script id="touchGuardScript">
+(function(){
+  const allowText = 'input, textarea, [contenteditable="true"]';
+  const isAllowed = target => {
+    const el = target && target.nodeType === 1 ? target : target && target.parentElement;
+    return !!(el && el.closest && el.closest(allowText));
+  };
+  ['selectstart','dragstart','contextmenu'].forEach(type => {
+    document.addEventListener(type, event => {
+      if(!isAllowed(event.target)) event.preventDefault();
+    }, {passive:false});
+  });
+})();
 </script>
 </body>
 </html>
