@@ -345,9 +345,10 @@ const ABILITIES = [
 const NUMBER_PUZZLE_MUSIC = 'https://cdn1.suno.ai/95b417d9-14e4-4960-841a-72a8dbcd6ec3.mp3';
 const TANGSHI_MUSIC = 'https://cdn1.suno.ai/ccb5d5f3-7d95-4f7d-a96b-ba8a0b7a044f.mp3';
 const FOLD_COLOR_MUSIC = 'https://cdn1.suno.ai/2e6b75d5-9314-4747-9ee7-4df64510ffc9.mp3';
-const REAL_AVATAR_MODEL = './assets/avatar-animated.glb';
-const WISDOM_TREE_MODEL = './assets/wisdom-tree/island_tree_mobile.glb';
-const WISDOM_TREE_MOBILE_MODEL = './assets/wisdom-tree/island_tree_mobile.glb';
+const ASSET_VERSION = '20260615-mobile-models-2';
+const REAL_AVATAR_MODEL = `./assets/avatar-animated.glb?v=${ASSET_VERSION}`;
+const WISDOM_TREE_MODEL = `./assets/wisdom-tree/island_tree_mobile.glb?v=${ASSET_VERSION}`;
+const WISDOM_TREE_MOBILE_MODEL = WISDOM_TREE_MODEL;
 const LOW_POWER_DEVICE = innerWidth <= 900 || matchMedia('(pointer: coarse)').matches || (navigator.deviceMemory && navigator.deviceMemory <= 4) || navigator.connection?.saveData;
 const AVATAR_MOVE_SPEED = 5.4;
 const AVATAR_ACTIONS = {
@@ -374,7 +375,7 @@ const CONTROLLED_MORPHS = [...new Set(
 
 const GAMES = [
   {id:'gcd', name:'公约数列', zone:'calc', difficulty:'进阶', path:'../连连看/公约数列.html', internalAudio:true, desc:'连接数字，利用最大公约数连续消除。', abilities:{calc:.62, logic:.28, observe:.1}},
-  {id:'black-white', name:'黑白迭代', zone:'logic', difficulty:'入门', path:'../层叠消融/index.html', internalAudio:true, desc:'点击十字区域翻转黑白，推理出目标图形。', abilities:{logic:.52, space:.28, observe:.2}},
+  {id:'black-white', name:'黑白迭代', zone:'logic', difficulty:'入门', path:'../层叠消融/index.html', internalAudio:true, desc:'点击格点迭代黑白状态，推理出目标图形。', abilities:{logic:.52, space:.28, observe:.2}},
   {id:'fold-color', name:'缤纷叠影', zone:'space', difficulty:'高阶', path:'../缤纷叠影/index.html', music:FOLD_COLOR_MUSIC, desc:'在折叠与颜色叠影中还原目标盘面。', abilities:{space:.58, logic:.28, observe:.14}},
   {id:'number-puzzle', name:'数字华容道', zone:'space', difficulty:'进阶', path:'../数字华容道/index.html', music:NUMBER_PUZZLE_MUSIC, desc:'滑动数字块，复原 1 到 15 的顺序。', abilities:{space:.45, logic:.35, observe:.2}},
   {id:'nebula', name:'星云穿越', zone:'logic', difficulty:'高阶', path:'../星云穿越/index.html', internalAudio:true, desc:'让星球穿越、碰撞、连锁清空。', abilities:{logic:.5, space:.32, observe:.18}},
@@ -1000,27 +1001,38 @@ function createSolemnFallbackTree(parent){
     if(i < 5) addTube(fallback, from, to, r*.18, glowMat);
   });
 
-  const crownGeo = new THREE.DodecahedronGeometry(1,0);
-  const crowns = [
-    {p:[0,6.55,0],s:[2.25,1.2,1.82]},
-    {p:[-1.42,6.08,-.32],s:[1.45,.86,1.2]},
-    {p:[1.55,6.18,-.42],s:[1.52,.92,1.25]},
-    {p:[-.55,6.95,.78],s:[1.22,.78,1.05]},
-    {p:[.82,7.08,.48],s:[1.12,.72,.96]},
-    {p:[.16,7.38,-.2],s:[.92,.62,.82]}
+  const leafGeo = new THREE.SphereGeometry(.085,12,8);
+  const canopyAnchors = [
+    {p:[0,6.38,0],s:[2.24,1.05,1.72],count:38},
+    {p:[-1.38,6.08,-.26],s:[1.34,.76,1.08],count:22},
+    {p:[1.46,6.16,-.36],s:[1.4,.78,1.12],count:24},
+    {p:[-.62,6.88,.72],s:[1.05,.58,.92],count:18},
+    {p:[.82,6.98,.46],s:[.96,.52,.82],count:18},
+    {p:[.12,7.28,-.12],s:[.76,.42,.66],count:14}
   ];
-  crowns.forEach((item,i)=>{
-    const crown = new THREE.Mesh(crownGeo, leafMats[i % leafMats.length]);
-    crown.position.set(...item.p);
-    crown.scale.set(...item.s);
-    crown.rotation.set(i*.32,i*.41,i*.18);
-    crown.castShadow = true;
-    crown.receiveShadow = true;
-    crown.userData.kind = 'fallbackCrown';
-    crown.userData.floatBaseY = crown.position.y;
-    crown.userData.floatAmp = .028 + i*.004;
-    wisdomTreeParts.push(crown);
-    fallback.add(crown);
+  canopyAnchors.forEach((anchor,i)=>{
+    for(let j=0;j<anchor.count;j++){
+      const seed = i * 97 + j * 29 + 11;
+      const theta = seed * 2.399963229728653;
+      const radius = Math.sqrt(((seed * 37) % 100) / 100);
+      const heightJitter = (((seed * 53) % 100) / 100 - .5);
+      const leaf = new THREE.Mesh(leafGeo, leafMats[(seed + i) % leafMats.length]);
+      leaf.position.set(
+        anchor.p[0] + Math.cos(theta) * anchor.s[0] * radius,
+        anchor.p[1] + heightJitter * anchor.s[1],
+        anchor.p[2] + Math.sin(theta) * anchor.s[2] * radius
+      );
+      const scale = .72 + (((seed * 17) % 100) / 100) * .9;
+      leaf.scale.set(scale * 1.35, scale * .62, scale);
+      leaf.rotation.set(seed*.013, seed*.021, seed*.017);
+      leaf.castShadow = true;
+      leaf.receiveShadow = true;
+      leaf.userData.kind = 'fallbackLeaf';
+      leaf.userData.floatBaseY = leaf.position.y;
+      leaf.userData.floatAmp = .014 + (j % 5) * .004;
+      wisdomTreeParts.push(leaf);
+      fallback.add(leaf);
+    }
   });
 
   ABILITIES.forEach((ability,i)=>{
@@ -1495,9 +1507,9 @@ function buildAvatar(){
   const astronautKitRoot = createAstronautKit();
   astronautKitRoot.visible = false;
   group.add(realModelRoot);
-  const shirtMat = makeMat(0x4aa8ff,.42,.08,.04);
-  const jacketMat = makeMat(0x223047,.48,.14,.03);
-  const pantsMat = makeMat(0x1b2232,.56,.1);
+  const shirtMat = makeMat(0xdfe6eb,.44,.12,.03);
+  const jacketMat = makeMat(0x4d5966,.48,.18,.025);
+  const pantsMat = makeMat(0x242a32,.56,.12);
   const skinMat = makeMat(0xffd3ad,.46,.02);
   const hairMat = makeMat(0x17131c,.62,.02);
   const shoeMat = makeMat(0x10131b,.34,.2);
@@ -2014,10 +2026,17 @@ function loadRealAvatarModel(){
 
 function applyAvatarStyle(){
   const color = new THREE.Color(state.avatar.color);
-  const jacketColor = color.clone().offsetHSL(.03,-.08,-.18);
+  const fallbackVisible = !avatar.realModelRoot?.visible;
+  const fallbackSuitColor = new THREE.Color(0xdfe6eb);
+  const fallbackTrimColor = new THREE.Color(0x9fb0c6);
+  const fallbackJacketColor = new THREE.Color(state.avatar.suit === 'coat' ? 0x2f3b48 : 0x4d5966);
+  const jacketColor = fallbackVisible ? fallbackJacketColor : color.clone().offsetHSL(.03,-.08,-.18);
   avatar.shirtParts.forEach(part=>{
-    part.material.color.copy(color);
-    if(part.material.emissive) part.material.emissive.copy(color).multiplyScalar(.16);
+    const shirtColor = fallbackVisible
+      ? (part === avatar.chestPanel ? fallbackTrimColor : fallbackSuitColor)
+      : color;
+    part.material.color.copy(shirtColor);
+    if(part.material.emissive) part.material.emissive.copy(shirtColor).multiplyScalar(fallbackVisible ? .06 : .16);
   });
   avatar.jacketParts.concat(avatar.coatParts).forEach(part=>{
     part.material.color.copy(jacketColor);
@@ -3083,10 +3102,10 @@ function renderLoop(now=performance.now()){
       part.position.y = part.userData.floatBaseY + Math.sin(now/520+i)*part.userData.floatAmp;
       part.rotation.y += dt * 1.25;
       part.rotation.z += dt * .35;
-    }else if(kind === 'leaf'){
+    }else if(kind === 'leaf' || kind === 'fallbackLeaf' || kind === 'fallbackCrown'){
       part.position.y = part.userData.floatBaseY + Math.sin(now/620+i)*part.userData.floatAmp;
-      part.rotation.x += dt * .45;
-      part.rotation.y += dt * .62;
+      part.rotation.x += dt * .18;
+      part.rotation.y += dt * .28;
     }else if(kind === 'spark'){
       part.position.y = part.userData.floatBaseY + Math.sin(now/520+i)*part.userData.floatAmp;
       part.rotation.x += dt * .6;
